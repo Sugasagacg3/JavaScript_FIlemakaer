@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Subir, Recortar y Redimensionar Imagen</title>
+    <!-- Enlace a los estilos de Cropper.js -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.css" />
+    <!-- Enlace a la librería Cropper.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.js"></script>
+    <style>
+        /* Estilo para la imagen previa */
+        #imagenPrevia {
+            max-width: 100%; /* Limita el tamaño máximo de la imagen para que no se salga del contenedor */
+        }
+        /* Estilo para el canvas donde se muestra la imagen recortada y redimensionada */
+        #canvas {
+            border: 1px solid #000; /* Borde negro para el canvas */
+            margin-top: 20px; /* Espacio superior */
+        }
+        /* Estilo para el área que muestra el tamaño del recorte */
+        #sizeDisplay {
+            margin-top: 10px; /* Espacio superior */
+            font-weight: bold; /* Texto en negrita */
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Subir, Recortar y Redimensionar Imagen</h1>
+
+    <!-- Campo para seleccionar la imagen a subir -->
+    <input type="file" id="subirImagen" accept="image/*">
+    <br><br>
+    <div>
+        <!-- Imagen de previsualización -->
+        <img id="imagenPrevia" alt="Imagen de Previsualización">
+    </div>
+    <br>
+    <!-- Botón para iniciar el recorte de la imagen -->
+    <button id="recortar">Recortar Imagen</button>
+    <br><br>
+
+    <div>
+        <!-- Campos para introducir el ancho y alto deseado para la redimensión -->
+        <label for="ancho">Ancho (px):</label>
+        <input type="number" id="ancho" min="1" placeholder="Introduzca el ancho">
+
+        <label for="alto">Alto (px):</label>
+        <input type="number" id="alto" min="1" placeholder="Introduzca el alto" disabled>
+
+        <!-- Botón para redimensionar la imagen -->
+        <button id="redimensionar">Redimensionar Imagen</button>
+        <!-- Botón para enviar la imagen a FileMaker -->
+        <button id="enviarFileMaker">Enviar a FileMaker</button>
+    </div>
+
+    <!-- Área para mostrar el tamaño del recorte en píxeles -->
+    <div id="sizeDisplay"></div>
+
+    <!-- Canvas para mostrar la imagen final recortada y redimensionada -->
+    <canvas id="canvas"></canvas>
+
+    <script>
+        // Obtener referencias a los elementos del DOM
+        const subirImagen = document.getElementById('subirImagen');
+        const imagenPrevia = document.getElementById('imagenPrevia');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d'); // Obtener el contexto del canvas para dibujar
+        const sizeDisplay = document.getElementById('sizeDisplay');
+        const anchoInput = document.getElementById('ancho');
+        const altoInput = document.getElementById('alto');
+        const enviarFileMakerBtn = document.getElementById('enviarFileMaker');
+        let cropper; // Variable para almacenar la instancia de Cropper
+
+        // Manejar el cambio en el input de archivo (subida de imagen)
+        subirImagen.addEventListener('change', (evento) => {
+            const archivo = evento.target.files[0]; // Obtener el archivo seleccionado
+            if (archivo) {
+                const lector = new FileReader(); // Crear un lector para leer el archivo
+                lector.onload = (e) => {
+                    imagenPrevia.src = e.target.result; // Mostrar la imagen subida en el elemento img
+                    // Si ya existe una instancia de Cropper, destruirla antes de crear una nueva
+                    if (cropper) {
+                        cropper.destroy();
+                    }
+                    // Crear una nueva instancia de Cropper para la imagen subida
+                    cropper = new Cropper(imagenPrevia, {
+                        viewMode: 1, // Modo de vista para el cropper
+                        aspectRatio: NaN, // Permite el recorte libre sin mantener una proporción fija
+                        crop(event) {
+                            // Mostrar el tamaño del recorte en píxeles
+                            sizeDisplay.textContent = `Tamaño del recorte: ${Math.round(event.detail.width)} x ${Math.round(event.detail.height)} píxeles`;
+                        }
+                    });
+                };
+                lector.readAsDataURL(archivo); // Leer el archivo como URL de datos
+            }
+        });
+
+        // Manejar el clic en el botón de recorte
+        document.getElementById('recortar').addEventListener('click', () => {
+            // Obtener el canvas con la imagen recortada
+            const canvasRecortado = cropper.getCroppedCanvas();
+            canvas.width = canvasRecortado.width; // Establecer el tamaño del canvas
+            canvas.height = canvasRecortado.height;
+            ctx.drawImage(canvasRecortado, 0, 0); // Dibujar la imagen recortada en el canvas principal
+
+            // Actualizar los campos de entrada con el tamaño del recorte
+            anchoInput.value = canvasRecortado.width;
+            altoInput.value = canvasRecortado.height;
+        });
+
+        // Mantener la proporción de la imagen al cambiar el ancho
+        anchoInput.addEventListener('input', () => {
+            const ancho = parseInt(anchoInput.value, 10); // Obtener el ancho introducido
+            const aspectRatio = canvas.width / canvas.height; // Calcular la relación de aspecto
+            altoInput.value = Math.round(ancho / aspectRatio); // Ajustar el alto para mantener la proporción
+            
+        });
+
+        // Manejar el clic en el botón de redimensionar
+        document.getElementById('redimensionar').addEventListener('click', () => {
+            const ancho = parseInt(anchoInput.value, 10); // Obtener el ancho introducido
+            const alto = parseInt(altoInput.value, 10); // Obtener el alto introducido
+
+            if (!isNaN(ancho) && !isNaN(alto) && ancho > 0 && alto > 0) {
+                const canvasRecortado = cropper.getCroppedCanvas(); // Obtener el canvas recortado
+                const canvasRedimensionado = document.createElement('canvas'); // Crear un nuevo canvas para la redimensión
+                const ctxRedimensionado = canvasRedimensionado.getContext('2d'); // Obtener el contexto del nuevo canvas
+
+                // Establecer el tamaño del canvas redimensionado
+                canvasRedimensionado.width = ancho;
+                canvasRedimensionado.height = alto;
+
+                // Dibujar la imagen recortada en el nuevo canvas con las nuevas dimensiones
+                ctxRedimensionado.drawImage(canvasRecortado, 0, 0, ancho, alto);
+
+                // Mostrar la imagen redimensionada en el canvas principal
+                canvas.width = ancho;
+                canvas.height = alto;
+                ctx.drawImage(canvasRedimensionado, 0, 0);
+            } else {
+                alert("Por favor, introduzca valores válidos para el ancho y alto."); // Mensaje de error si los valores no son válidos
+            }
+        });
+
+        // Manejar el clic en el botón para enviar la imagen a FileMaker
+        enviarFileMakerBtn.addEventListener('click', () => {
+            canvas.toBlob((blob) => {
+                const reader = new FileReader(); // Crear un lector para leer el blob
+                reader.onloadend = () => {
+                    let base64data = reader.result; // Obtener el resultado en formato Base64
+                    // Quitar el prefijo 'data:image/png;base64,' para que FileMaker pueda procesar la imagen
+                    base64data = base64data.replace(/^data:image\/(png|jpg);base64,/, "");
+                    // Llamar a la función de FileMaker para insertar la imagen en el campo contenedor
+                    window.FileMaker.PerformScript("guardarImagen", base64data);
+                };
+                reader.readAsDataURL(blob); // Leer el blob como URL de datos
+            });
+        });
+
+        // Para ejecutar desde Filemaker es mejor utilizar un funcion normel en vez de una funcion flecha
+
+                function enviarImagenAFileMaker() {
+        canvas.toBlob((blob) => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                let base64data = reader.result;
+                base64data = base64data.replace(/^data:image\/(png|jpg);base64,/, "");
+                if (window.FileMaker && window.FileMaker.PerformScript) {
+                    window.FileMaker.PerformScript("guardarImagen", base64data);
+                } else {
+                    console.error("FileMaker no está disponible.");
+                }
+            };
+            reader.readAsDataURL(blob);
+        });
+    }
+    </script>
+
+</body>
+</html>

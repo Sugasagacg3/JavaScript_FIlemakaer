@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador de Código QR</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body>
+    <h1>Generador de Código QR</h1>
+    
+    <!-- Campo de entrada para la URL -->
+    <label for="entradaURL">Introduce una URL:</label>
+    <input type="text" id="entradaURL" placeholder="https://example.com"><br><br>
+    
+    <!-- Botón para generar el código QR -->
+    <button id="botonGenerar">Generar Código QR</button>
+    <button id="botonEnviarFM">Enviar a FileMaker</button> <!-- Nuevo botón para enviar a FileMaker -->
+    
+    <!-- Contenedor donde se mostrará el código QR -->
+    <div id="codigoQR"></div>
+    
+    <script>
+        // Obtener los elementos del DOM
+        const botonGenerar = document.getElementById('botonGenerar');
+        const botonEnviarFM = document.getElementById('botonEnviarFM');
+        const entradaURL = document.getElementById('entradaURL');
+        const contenedorQR = document.getElementById('codigoQR');
+        
+        let qrCanvas = null; // Variable para almacenar el canvas del QR
+        
+        // Función para generar el código QR
+        // Modificamos la funcion para enviar la url desde filemkaer, añadimos parametro
+        function generarCodigoQR(urlFilemker) {
+            // Limpiar cualquier código QR previo
+            contenedorQR.innerHTML = "";
+            
+            // Obtener la URL del campo de entrada
+            const url = urlFilemker; //recogemos el valor del parametro
+            
+            // Validar que la URL no esté vacía
+            if (url.trim() === "") {
+                alert("Por favor, introduce una URL válida.");
+                return;
+            }
+            
+            // Crear un nuevo código QR
+            const qrCode = new QRCode(contenedorQR, {
+                text: url,
+                width: 128,
+                height: 128
+            });
+            
+            // Esperar a que el QR se genere y luego capturar el canvas
+            setTimeout(() => {
+                qrCanvas = contenedorQR.querySelector('canvas');
+                enviarAFileMaker() ; // Ejecutamos la funcion para que se inserte en el contenedor Filemaker
+            }, 100); // Espera breve para asegurar que el QR se haya renderizado
+           
+        }
+
+        // Función para enviar el QR a FileMaker
+        function enviarAFileMaker() {
+            if (qrCanvas) {
+                qrCanvas.toBlob((blob) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                        let base64data = reader.result;
+                        base64data = base64data.replace(/^data:image\/(png|jpg);base64,/, "");
+                        // Llamar a la función de FileMaker para insertar la imagen en el campo contenedor
+                        window.FileMaker.PerformScript("guardarQR", base64data);
+                    };
+                    reader.readAsDataURL(blob); // Leer el blob como URL de datos
+                });
+            } else {
+                alert("Primero genera un código QR.");
+            }
+        }
+
+        // Agregar eventos de click a los botones
+        botonGenerar.addEventListener('click', generarCodigoQR);
+        botonEnviarFM.addEventListener('click', enviarAFileMaker);
+    </script>
+</body>
+</html>

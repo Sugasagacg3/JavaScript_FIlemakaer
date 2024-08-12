@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador de Código QR</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body>
+    <h1>Generador de Código QR</h1>
+    
+    <!-- Campo de entrada para la URL -->
+    <label for="entradaURL">Introduce una URL:</label>
+    <input type="text" id="entradaURL" placeholder="https://example.com"><br><br>
+    
+    <!-- Botón para generar el código QR -->
+    <button id="botonGenerar">Generar Código QR</button>
+    
+    <!-- Contenedor donde se mostrará el código QR -->
+    <div id="codigoQR"></div>
+    
+    <script>
+        // Obtener los elementos del DOM
+        const botonGenerar = document.getElementById('botonGenerar');
+        const entradaURL = document.getElementById('entradaURL');
+        const contenedorQR = document.getElementById('codigoQR');
+        
+        // Función para generar el código QR
+        function generarCodigoQR() {
+            // Limpiar cualquier código QR previo
+            contenedorQR.innerHTML = "";
+            
+            // Obtener la URL del campo de entrada
+            const url = entradaURL.value;
+            
+            // Validar que la URL no esté vacía
+            if (url.trim() === "") {
+                alert("Por favor, introduce una URL válida.");
+                return;
+            }
+            
+            // Crear un nuevo código QR
+            new QRCode(contenedorQR, url);
+        }
+        
+        // Agregar un evento de click al botón
+        botonGenerar.addEventListener('click', generarCodigoQR);
+    </script>
+</body>
+</html>

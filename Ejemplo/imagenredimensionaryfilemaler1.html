@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Subir, Recortar y Redimensionar Imagen</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.css" />
+        <!-- Enlace a la librería Cropper.js -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.js"></script>
+    <style>
+        #imagenPrevia {
+            max-width: 100%; /* Asegura que la imagen no sobrepase el contenedor */
+        }
+        #canvas {
+            border: 1px solid #000;
+            margin-top: 20px;
+        }
+        #sizeDisplay {
+            margin-top: 10px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Subir, Recortar y Redimensionar Imagen</h1>
+
+    <input type="file" id="subirImagen" accept="image/*">
+    <br><br>
+    <div>
+        <img id="imagenPrevia" alt="Imagen de Previsualización">
+    </div>
+    <br>
+    <button id="recortar">Recortar Imagen</button>
+    <br><br>
+
+    <div>
+        <label for="ancho">Ancho (px):</label>
+        <input type="number" id="ancho" min="1" placeholder="Introduzca el ancho">
+
+        <label for="alto">Alto (px):</label>
+        <input type="number" id="alto" min="1" placeholder="Introduzca el alto" disabled>
+
+        <button id="redimensionar">Redimensionar Imagen</button>
+    </div>
+
+    <div id="sizeDisplay"></div>
+
+    <canvas id="canvas"></canvas>
+
+    <script>
+        const subirImagen = document.getElementById('subirImagen');
+        const imagenPrevia = document.getElementById('imagenPrevia');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const sizeDisplay = document.getElementById('sizeDisplay');
+        const anchoInput = document.getElementById('ancho');
+        const altoInput = document.getElementById('alto');
+        let cropper;
+
+        subirImagen.addEventListener('change', (evento) => {
+            const archivo = evento.target.files[0];
+            if (archivo) {
+                const lector = new FileReader();
+                lector.onload = (e) => {
+                    imagenPrevia.src = e.target.result;
+                    if (cropper) {
+                        cropper.destroy();
+                    }
+                    cropper = new Cropper(imagenPrevia, {
+                        viewMode: 1,
+                        aspectRatio: NaN, // Permite el recorte libre sin mantener una proporción fija
+                        crop(event) {
+                            // Mostrar el tamaño seleccionado en píxeles
+                            sizeDisplay.textContent = `Tamaño del recorte: ${Math.round(event.detail.width)} x ${Math.round(event.detail.height)} píxeles`;
+                        }
+                    });
+                };
+                lector.readAsDataURL(archivo);
+            }
+        });
+
+        document.getElementById('recortar').addEventListener('click', () => {
+            const canvasRecortado = cropper.getCroppedCanvas();
+            canvas.width = canvasRecortado.width;
+            canvas.height = canvasRecortado.height;
+            ctx.drawImage(canvasRecortado, 0, 0);
+
+            // Actualizar los campos de entrada con el tamaño recortado
+            anchoInput.value = canvasRecortado.width;
+            altoInput.value = canvasRecortado.height;
+        });
+
+        // Redimensionar manteniendo la proporción
+        anchoInput.addEventListener('input', () => {
+            const ancho = parseInt(anchoInput.value, 10);
+            const aspectRatio = canvas.width / canvas.height;
+            altoInput.value = Math.round(ancho / aspectRatio);
+        });
+
+        document.getElementById('redimensionar').addEventListener('click', () => {
+            const ancho = parseInt(anchoInput.value, 10);
+            const alto = parseInt(altoInput.value, 10);
+
+            if (!isNaN(ancho) && !isNaN(alto) && ancho > 0 && alto > 0) {
+                const canvasRecortado = cropper.getCroppedCanvas();
+                const canvasRedimensionado = document.createElement('canvas');
+                const ctxRedimensionado = canvasRedimensionado.getContext('2d');
+
+                // Mantener la proporción durante la redimensión
+                canvasRedimensionado.width = ancho;
+                canvasRedimensionado.height = alto;
+
+                ctxRedimensionado.drawImage(canvasRecortado, 0, 0, ancho, alto);
+
+                // Mostrar la imagen redimensionada en el canvas principal
+                canvas.width = ancho;
+                canvas.height = alto;
+                ctx.drawImage(canvasRedimensionado, 0, 0);
+            } else {
+                alert("Por favor, introduzca valores válidos para el ancho y alto.");
+            }
+        });
+    </script>
+
+</body>
+</html>

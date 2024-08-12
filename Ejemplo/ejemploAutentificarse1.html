@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Autentificarse</title>
+</head>
+<body>
+    <!-- Etiqueta y campo de entrada para el API Key -->
+    <label for="apiKey">API Key:</label>
+    <input type="text" id="apiKey" name="apiKey"><br><br>
+
+    <!-- Etiqueta y campo de entrada para el API Secret -->
+    <label for="apiSecret">API Secret:</label>
+    <input type="password" id="apiSecret" name="apiSecret"><br><br>
+
+    <!-- Botón para iniciar el proceso de autenticación -->
+    <button id="enviarButton">Autentificarse</button>
+
+    <!-- Párrafo donde se mostrará el token o el mensaje de error -->
+    <p id="tokenDisplay"></p>
+
+    <script>
+        // Añadir un evento de click al botón que llama a la función autentificarse
+        document.getElementById('enviarButton').addEventListener('click', autentificarse);
+
+        // Definir la función autentificarse
+        function autentificarse() {
+            // Obtener los valores ingresados en los campos de entrada
+            const apiKey = document.getElementById('apiKey').value;
+            const apiSecret = document.getElementById('apiSecret').value;
+
+            // Definir la URL del endpoint de autenticación
+            const url = "https://test.es.sign.fiskaly.com/api/v1/auth";
+            // Crear el objeto de datos a enviar en el cuerpo de la solicitud
+            const data = {
+                "content": {
+                    "api_key": apiKey,
+                    "api_secret": apiSecret
+                }
+            };
+
+            // Realizar la solicitud fetch a la API
+            fetch(url, {
+                method: 'POST', // Método HTTP POST
+                headers: {
+                    'Content-Type': 'application/json', // Tipo de contenido JSON
+                },
+                body: JSON.stringify(data) // Convertir el objeto de datos a JSON
+            })
+            .then(response => {
+                // Mostrar el código de estado HTTP en la consola para depuración
+                console.log('HTTP Status Code:', response.status);
+                // Convertir la respuesta a JSON y retornar un objeto que incluye el estado y el cuerpo de la respuesta
+                return response.json().then(data => ({ status: response.status, body: data }));
+            })
+            .then(result => {
+                // Mostrar el cuerpo de la respuesta en la consola para depuración
+                console.log('Success:', result.body);
+                // Mostrar el objeto del token en la consola para depuración
+                console.log('Token Object:', result.body.content.access_token);
+
+                // Acceder al campo bearer dentro del objeto access_token
+                const bearerToken = result.body.content.access_token.bearer;
+                // Mostrar el valor de bearer en la consola para depuración
+                console.log('Bearer Token:', bearerToken);
+                // Mostrar solo el valor de bearer en el párrafo de la página
+                document.getElementById('tokenDisplay').textContent = 'Token: ' + bearerToken;
+            })
+            .catch((error) => {
+                // Mostrar el error en la consola para depuración
+                console.error('Error:', error);
+                // Mostrar el mensaje de error en el párrafo de la página
+                document.getElementById('tokenDisplay').textContent = 'Error: ' + error;
+            });
+        }
+    </script>
+</body>
+</html>
